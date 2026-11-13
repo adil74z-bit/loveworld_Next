@@ -35,3 +35,19 @@ Do this when you are ready for Google login. It is not needed to see the Phase 0
 7. Under **Authentication -> Settings -> Authorized domains**, add your future hosting domain (`localhost` is already allowed).
 
 Never share or commit your `.env` file. It is already listed in `.gitignore`.
+
+## Part 3: Supabase setup (dashboard steps still required)
+
+Status: the database design is written but has NOT been applied or tested.
+
+1. Create a project at https://supabase.com/dashboard.
+2. Open **SQL Editor**, paste the contents of `supabase/migrations/0001_player_data.sql`, and run it.
+3. Run `supabase/tests/rls_check.sql` and confirm every table shows RLS enabled and forced.
+4. **Project Settings -> API**: copy the Project URL and the `anon` key into your `.env`.
+   Never copy the `service_role` key into this project.
+5. **Authentication -> Providers -> Google**: enable it.
+   - In Google Cloud Console (https://console.cloud.google.com) create an OAuth client ID of type "Web application".
+   - Add the redirect URL shown by Supabase (`https://<project-ref>.supabase.co/auth/v1/callback`) under "Authorized redirect URIs".
+   - Paste the Google Client ID and Secret into the Supabase Google provider and save.
+6. **Authentication -> URL Configuration**: set Site URL to your hosting address and add `http://localhost:5173` to Redirect URLs.
+7. Test with two different Google accounts that each can only see their own data.

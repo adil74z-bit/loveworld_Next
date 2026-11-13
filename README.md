@@ -10,6 +10,7 @@ This is a brand-new project. It is separate from the old Love World repository, 
 | Project structure (Vite + Three.js) | Written |
 | Placeholder 3D scene (spinning cube) | Written |
 | Firebase config + service skeletons | Written (not connected) |
+| Supabase database design + RLS | Written, not applied or tested |
 | Google login | Not built yet (Phase 1) |
 | Character creator | Not built yet (Phase 2) |
 | Island, objects, saving the world | Not built yet |

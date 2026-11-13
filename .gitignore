@@ -1,8 +1,23 @@
+# Dependencies and builds
 node_modules/
 dist/
+
+# Secrets: never commit any of these
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.pem
+*.key
+*service-account*.json
+firebase-adminsdk*.json
+.supabase/
+supabase/.temp/
+supabase/.branches/
+supabase/seed-private*.sql
+
+# Tooling and OS
 .firebase/
 *.log
 .DS_Store
+.vscode/
+.idea/
