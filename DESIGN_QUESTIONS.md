@@ -1,44 +1,49 @@
-# Design Questions (waiting for your answers)
+# Design Questions
 
-No map or character design has been invented or built. Please answer what you can,
-and send references, sketches and 3D models whenever you like.
+The game should be built around your choices. No final island or character art
+direction is being assumed yet.
 
 ## 1. Island map and locations
-- What is the overall shape and size? (small cozy island, big open world, several islands?)
-- Which locations must exist? (house, beach, forest, lighthouse, dock, garden, cave, ...)
-- Where does the player start?
-- Should there be paths, bridges, water, mountains, secret places?
-- Do you have a reference image, map sketch, or game it should feel like?
 
-## 2. Environment, buildings and atmosphere
-- Art style: realistic, low-poly, stylized/cartoon, anime-like?
-- Time of day and weather: fixed sunset, day/night cycle, rain, snow?
-- Mood: romantic, calm, magical, adventurous?
-- Music and ambient sounds you want?
-- Which buildings are enterable? What should the main house look like inside?
-- Do you already have 3D models (GLB/GLTF, FBX, OBJ) for buildings, trees, props?
+- Overall shape and scale: compact cozy island or larger open world?
+- Required locations: villa/house, beach, garden, dock, forest, other?
+- Where should the player spawn?
+- Paths, bridges, ocean edge, hills, hidden areas?
+- Do you have a reference image, sketch or game reference?
 
-## 3. Characters: male and female
-- Same body base for both, or two different models?
-- Realistic, stylized, chibi, anime proportions?
-- Do you have character models (GLB/GLTF/VRM), or should we pick a free source later?
-- First person or third person camera?
+## 2. Environment and buildings
 
-## 4. Face, hair, body and outfits
-- Face: preset faces, or sliders (eyes, nose, mouth, skin tone)?
-- Hair: how many styles and colors? Facial hair options?
-- Body: height/build sliders, or a few fixed body types?
-- Outfits: tops, bottoms, shoes, accessories, full outfits? Hijab/cultural options?
-- Any clothing you want included or excluded?
+- Art style: realistic, stylized-realistic, low-poly, anime or another style?
+- Fixed golden hour or a day/night cycle?
+- Calm/romantic, magical, tropical or adventurous mood?
+- Which buildings can the player enter?
+- Do you have GLB/GLTF character, building or prop models to use?
 
-## 5. Animations and customization options
-- Needed animations: idle, walk, run, jump, wave, sit, dance, others?
-- Emotes or interactions (hug pose, photo pose, sit on bench)?
-- Can players change their character later (Edit Character)? Any limits?
-- Should customization be free, or unlocked by progress?
+## 3. Characters
 
-## 6. Technical decision I need from you
-- **Which backend is the single source of truth: Supabase or Firebase?**
-  Phase 0 contained Firebase stubs. This sync added a ready Supabase database design.
-  Running both would be confusing, so please pick one. Nothing has been deleted.
-- If Supabase: which Google sign-in setup do you prefer (Supabase Auth with Google provider is the plan)?
+- Separate male/female base models or one shared base?
+- Realistic or stylized proportions?
+- Do you already have rigged GLB/GLTF models?
+- Third-person camera confirmed?
+- Which animations are essential: idle, walk, run, jump, sit, wave, dance?
+
+## 4. Character creator
+
+- Face presets or detailed sliders?
+- Hair styles and colors?
+- Skin tone and body type choices?
+- Outfits, shoes and accessories?
+- Should players be able to edit their character later?
+
+## 5. Gameplay and controls
+
+- Which objects should be interactable?
+- What should be saved permanently between logins?
+- Desktop controls and mobile joystick/camera preferences?
+- Any emotes or social actions planned for the single-player stage?
+
+## Technical direction
+
+- Backend: Supabase only.
+- First release: single-player with a permanent account/profile.
+- Multiplayer: deferred, but ownership and world data should not block it later.

@@ -2,7 +2,7 @@
   "name": "loveworld-next",
   "version": "0.1.0",
   "private": true,
-  "description": "Love World Next - experimental single-player 3D island game (Phase 0: project foundation)",
+  "description": "Love World Next - single-player 3D island game, multiplayer-ready architecture",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "firebase": "^11.0.0",
     "three": "^0.170.0"
   },
   "devDependencies": {
