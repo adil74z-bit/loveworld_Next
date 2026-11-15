@@ -1,5 +1,4 @@
 import { Game } from './core/Game.js';
-import { isSupabaseConfigured } from './supabase/supabaseClient.js';
 import { GAME_VERSION } from './core/constants.js';
 
 const statusEl = document.getElementById('boot-status');
@@ -17,22 +16,19 @@ async function boot() {
     if (!canvas) throw new Error('Game canvas was not found.');
 
     const game = new Game(canvas);
-    game.start();
-
-    setStatus(
-      isSupabaseConfigured()
-        ? 'Supabase settings found. Account features are being prepared.'
-        : '3D preview is ready. Add your Supabase public settings to enable accounts.'
-    );
+    game.onStatus((message, ready = false) => {
+      setStatus(message);
+      if (ready) window.setTimeout(() => bootScreen?.classList.add('fade-out'), 900);
+    });
 
     if (debugPanel) {
       debugPanel.classList.remove('hidden');
       game.onDebug((text) => {
-        debugPanel.textContent = `Love World Next v${GAME_VERSION}\n${text}`;
+        debugPanel.textContent = `Love World Next v${GAME_VERSION}\\n${text}`;
       });
     }
 
-    window.setTimeout(() => bootScreen?.classList.add('fade-out'), 900);
+    game.start();
   } catch (err) {
     console.error('Boot failed:', err);
     setStatus(`Something went wrong: ${err.message}`);
