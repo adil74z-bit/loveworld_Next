@@ -24,7 +24,7 @@ async function boot() {
     if (debugPanel) {
       debugPanel.classList.remove('hidden');
       game.onDebug((text) => {
-        debugPanel.textContent = `Love World Next v${GAME_VERSION}\\n${text}`;
+        debugPanel.textContent = `Love World Next v${GAME_VERSION}\n${text}`;
       });
     }
 
