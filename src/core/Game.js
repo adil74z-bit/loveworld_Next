@@ -97,7 +97,7 @@ export class Game {
     } else {
       for (const [dx, dy, dz, s] of [[0,3.3,0,1.1],[-0.75,2.8,0.25,0.8],[0.7,2.9,-0.2,0.85],[0,4,0.15,0.8]]) {
         const crown = this.#mesh(new THREE.DodecahedronGeometry(1.25 * scale * s, 0), leaves[Math.floor(Math.random() * leaves.length)], parent, [x + dx * scale, dy * scale, z + dz * scale]);
-        crown.rotation.set(Math.random() * 0.3, Math.random() * 2, Math.random() * 0.3;
+        crown.rotation.set(Math.random() * 0.3, Math.random() * 2, Math.random() * 0.3);
       }
     }
   }
@@ -115,9 +115,6 @@ export class Game {
 
   #path(parent, points, width, material) {
     const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p[0], 0.22, p[1])));
-    const mesh = this.#mesh(new THREE.ExtrudeGeometry(new THREE.Shape(points.map((p, i) => i ? new THREE.Vector2(p[0], p[1]) : new THREE.Vector2(p[0], p[1]))), { depth: 0.05, bevelEnabled: false }), material, parent, [0, 0.18, 0], false);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.visible = false;
     const tube = this.#mesh(new THREE.TubeGeometry(curve, Math.max(20, points.length * 8), width / 2, 5, false), material, parent, [0, 0.2, 0], false);
     tube.scale.y = 0.04;
     return tube;
@@ -274,7 +271,7 @@ export class Game {
       this.#box(world,4.4,0.25,3.4,this.#mat([0xffd37c,0xff8e8e,0x92d9b1][i%3]),x,3,z);
       this.#box(world,0.18,2.7,0.18,wood,x-1.8,1.8,z-1.3);
       this.#box(world,0.18,2.7,0.18,wood,x+1.8,1.8,z-1.3);
-      for(let k=0;k<3;k++) this.#mesh(world, new THREE.SphereGeometry(0.4,5,4), this.#mat([0xe45b54,0x72bd68,0xffd15b][k]), world, [x-1+k,1.2,z]);
+      for(let k=0;k<3;k++) this.#mesh(new THREE.SphereGeometry(0.4,5,4), this.#mat([0xe45b54,0x72bd68,0xffd15b][k]), world, [x-1+k,1.2,z]);
     }
     // Pond, little stream, stepping stones and bridge.
     this.#mesh(new THREE.CircleGeometry(13,9),this.#mat(0x6dc9d8),world,[42,0.3,28]).rotation.x=-Math.PI/2;
@@ -289,11 +286,11 @@ export class Game {
     for(let i=0;i<45;i++) {
       const x=(Math.random()-0.5)*190,z=(Math.random()-0.5)*180;
       if(Math.abs(x)<28&&Math.abs(z)<28) continue;
-      this.#mesh(world,new THREE.DodecahedronGeometry(0.6+Math.random()*1.1,0),stone,world,[x,0.35,z]);
+      this.#mesh(new THREE.DodecahedronGeometry(0.6+Math.random()*1.1,0),stone,world,[x,0.35,z]);
     }
     for(const [x,z] of [[-90,0],[-65,-20],[-40,-20],[20,-10],[60,0],[80,20],[0,-60],[0,60],[-50,50],[50,50]]) {
       this.#cylinder(world,0.12,0.15,3,wood,x,1.5,z,5);
-      this.#mesh(world,new THREE.BoxGeometry(0.8,0.6,0.8),this.#mat(0xffe3a0),world,[x,3.2,z]);
+      this.#mesh(new THREE.BoxGeometry(0.8,0.6,0.8),this.#mat(0xffe3a0),world,[x,3.2,z]);
     }
     for(const [x,z] of [[-10,25],[15,22],[25,-20],[-28,15],[50,38],[-58,30]]) {
       this.#box(world,3,0.4,1.2,wood,x,0.7,z);
