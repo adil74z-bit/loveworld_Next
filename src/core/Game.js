@@ -96,6 +96,78 @@ export class Game {
       this.island.name = 'LoveWorldIsland';
       this.scene.add(this.island);
 
+      // Lift named building groups that were exported below the island surface.
+      // Terrain is used as the height reference; the island itself is never moved.
+      this.island.updateMatrixWorld(true);
+      const buildingPattern = /palace|village|villa|house|building|cottage|suite|home|townhouse/i;
+      const terrainPattern = /rolling_grassy_island_and_sandy_shore|terrain|ground|grass|sand|beach|shore|island/i;
+      const buildingRoots = [];
+      this.island.traverse((object) => {
+        if (!object.name || !buildingPattern.test(object.name)) return;
+        let ancestor = object.parent;
+        while (ancestor && ancestor !== this.island) {
+          if (ancestor.userData?.loveWorldBuildingRoot) return;
+          ancestor = ancestor.parent;
+        }
+        object.userData.loveWorldBuildingRoot = true;
+        buildingRoots.push(object);
+      });
+
+      const terrainMeshes = [];
+      this.island.traverse((object) => {
+        if (!object.isMesh || !object.name || !terrainPattern.test(object.name)) return;
+        let insideBuilding = false;
+        let parent = object.parent;
+        while (parent && parent !== this.island) {
+          if (parent.userData?.loveWorldBuildingRoot) {
+            insideBuilding = true;
+            break;
+          }
+          parent = parent.parent;
+        }
+        if (!insideBuilding) terrainMeshes.push(object);
+      });
+
+      const heightRay = new THREE.Raycaster();
+      const down = new THREE.Vector3(0, -1, 0);
+      const terrainHitsAt = (x, z, startY) => {
+        heightRay.set(new THREE.Vector3(x, startY, z), down);
+        const hits = heightRay.intersectObjects(terrainMeshes, false);
+        return hits.length ? hits[0].point.y : null;
+      };
+
+      let correctedBuildings = 0;
+      for (const building of buildingRoots) {
+        building.updateWorldMatrix(true, true);
+        const box = new THREE.Box3().setFromObject(building);
+        if (box.isEmpty()) continue;
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const insetX = Math.min(size.x * 0.28, 3);
+        const insetZ = Math.min(size.z * 0.28, 3);
+        const samples = [
+          [center.x, center.z],
+          [center.x - insetX, center.z - insetZ],
+          [center.x + insetX, center.z - insetZ],
+          [center.x - insetX, center.z + insetZ],
+          [center.x + insetX, center.z + insetZ]
+        ];
+        const heights = samples
+          .map(([x, z]) => terrainHitsAt(x, z, box.max.y + 100))
+          .filter((height) => height !== null)
+          .sort((a, b) => a - b);
+        if (!heights.length) continue;
+
+        const groundY = heights[Math.floor(heights.length / 2)];
+        const buriedDepth = groundY - box.min.y;
+        // Small overlaps are intentional; only correct clearly buried structures.
+        if (buriedDepth > 0.35 && buriedDepth < Math.max(30, size.y * 0.8)) {
+          building.position.y += buriedDepth + 0.12;
+          correctedBuildings += 1;
+          building.updateWorldMatrix(true, true);
+        }
+      }
+
       const bounds = new THREE.Box3().setFromObject(this.island);
       if (bounds.isEmpty()) throw new Error('The island model loaded but contains no visible geometry.');
 
@@ -115,7 +187,7 @@ export class Game {
       this.controls.update();
 
       this.#status('Island loaded! Drag to look around and scroll/pinch to zoom.', true);
-      this.debugHandler?.(`Map loaded | ${this.island.children.length} top-level objects`);
+      this.debugHandler?.(`Map loaded | ${this.island.children.length} top-level objects | ${correctedBuildings} building groups aligned`);
     } catch (error) {
       console.error('Island loading failed:', error);
       this.#status(`Map loading failed: ${error.message}`);
