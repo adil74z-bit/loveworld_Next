@@ -333,14 +333,18 @@ export class Game {
       this.#box(world,0.25,1.4,0.25,wood,x-1.2,0.1,z);
       this.#box(world,0.25,1.4,0.25,wood,x+1.2,0.1,z);
     }
-    // Coastal walking trail linking the village, beach, and ocean lookout.\n    this.#path(world, [[0,-55],[0,-75],[0,-92],[0,-108],[0,-124]], 4, pathMat);\n    // Beach umbrellas, loungers, docks and shoreline activities.
+    // Coastal walking trail linking the village, beach, and ocean lookout.
+    this.#path(world, [[0,-55],[0,-75],[0,-92],[0,-108],[0,-124]], 4, pathMat);
+    // Beach umbrellas, loungers, docks and shoreline activities.
     for(let i=0;i<10;i++) {
       const x=-85+i*18,z=-(100+Math.random()*4);
       this.#cylinder(world,0.1,0.1,4,wood,x,2,z,5);
       this.#cone(world,3,1.1,this.#mat(i%2?0xff8f98:0xffd86e),x,4.2,z,8);
       this.#box(world,2.8,0.3,1.1,this.#mat(0xf7f0df),x+4,0.35,z+2);
     }
-    this.#box(world,26,0.5,5,bridgeMat,0,0.4,-112);\n    // Connected open-world perimeter: distant mountain ranges beyond the village.\n    this.#buildMountainBoundary(world);
+    this.#box(world,26,0.5,5,bridgeMat,0,0.4,-112);
+    // Connected open-world perimeter: distant mountain ranges beyond the village.
+    this.#buildMountainBoundary(world);
     for(let i=0;i<8;i++) this.#box(world,1,0.5,5,wood,-12+i*3.4,0.75,-112);
     this.world=world;
     return world;
