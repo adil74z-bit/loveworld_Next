@@ -236,7 +236,7 @@ export class Game {
   #buildMountainBoundary(parent) {
     // A single irregular mainland apron joins the beach, foothills and mountain bases.
     const landShape = new THREE.Shape();
-    const edge = [[-178,-178],[-142,-207],[-75,-220],[8,-225],[92,-208],[155,-174],[192,-118],[207,-48],[205,28],[182,92],[143,132],[91,159],[53,205],[18,242],[-18,235],[-49,194],[-94,164],[-148,130],[-185,76],[-207,8],[-204,-78]];
+    const edge = [[-285,-330],[-215,-375],[-120,-402],[-15,-410],[95,-390],[205,-340],[270,-265],[302,-170],[310,-55],[292,65],[260,160],[225,245],[205,335],[180,430],[130,525],[55,590],[-35,610],[-120,570],[-190,500],[-235,410],[-275,300],[-305,180],[-315,45],[-305,-105],[-300,-230]];
     landShape.moveTo(edge[0][0], edge[0][1]);
     edge.slice(1).forEach(p => landShape.lineTo(p[0], p[1]));
     landShape.closePath();
@@ -272,7 +272,7 @@ export class Game {
 
     // Continue the exit trail into a substantial second explorable mainland region.
     const outerLand = new THREE.Shape();
-    const outerEdge = [[-52,168],[-88,205],[-112,260],[-126,322],[-108,390],[-72,455],[-18,505],[42,522],[101,492],[142,445],[158,386],[143,322],[119,270],[82,222],[48,184],[18,168]];
+    const outerEdge = [[-155,145],[-205,205],[-235,285],[-248,375],[-220,470],[-160,555],[-75,625],[20,655],[120,625],[205,565],[255,480],[270,385],[245,290],[205,220],[135,165],[45,145]];
     outerLand.moveTo(outerEdge[0][0], outerEdge[0][1]);
     outerEdge.slice(1).forEach(p => outerLand.lineTo(p[0], p[1]));
     outerLand.closePath();
@@ -363,7 +363,7 @@ export class Game {
     const bridgeMat = this.#mat(0x9c704b);
 
     // Ocean + layered island base.
-    this.#mesh(new THREE.CircleGeometry(420, 48), water, world, [0, -3.2, 0], false).rotation.x = -Math.PI / 2;
+    this.#mesh(new THREE.CircleGeometry(1050, 64), water, world, [0, -3.2, 0], false).rotation.x = -Math.PI / 2;
     this.#cylinder(world, 0, 0, 1, grass, 0, 0, 0, 8);
     const islandShape = new THREE.Shape();
     const outline = [[-105,-55],[-92,-88],[-58,-104],[-18,-108],[24,-100],[62,-88],[96,-62],[110,-20],[104,24],[84,62],[52,92],[12,106],[-28,102],[-65,88],[-98,55],[-112,12]];
