@@ -192,24 +192,46 @@ export class Game {
   }
 
   #makeMountainRange(parent, centerX, centerZ, length, direction = 'x', seed = 0) {
-    // Connected foothills with several low-poly peaks form a natural world boundary.
-    const earth = this.#mat(0x78936b);
-    const rock = [0x87918b,0x9ca49b,0x707d78,0xa4aaa0].map(c => this.#mat(c));
-    const count = Math.max(5, Math.floor(length / 18));
+    // Broad, layered low-poly mountain masses: rounded shoulders and broken rocky ridgelines.
+    const foothillMats = [0x668b5d, 0x789b68, 0x587f55, 0x87a875].map(c => this.#mat(c));
+    const slopeMats = [0x718b76, 0x829783, 0x667e70, 0x98a28e].map(c => this.#mat(c));
+    const rockMats = [0x858f8d, 0x9da6a1, 0x727f7d, 0xb0b5aa].map(c => this.#mat(c));
+    const count = Math.max(7, Math.floor(length / 15));
+    const shape = new THREE.IcosahedronGeometry(1, 1);
+
     for (let i = 0; i < count; i++) {
       const t = (i / (count - 1) - 0.5) * length;
-      const x = centerX + (direction === 'x' ? t : Math.sin(t / 22) * 8);
-      const z = centerZ + (direction === 'z' ? t : Math.cos(t / 25) * 8);
-      const baseR = 13 + ((i * 7 + seed) % 9);
-      const height = 22 + ((i * 13 + seed) % 35);
-      const foothill = this.#mesh(new THREE.DodecahedronGeometry(baseR, 1), earth, parent, [x, 5, z], false);
-      foothill.scale.set(1.7, 0.65, 1.25);
-      const peak = this.#cone(parent, baseR * 1.05, height, rock[(i + seed) % rock.length], x, height / 2 + 3, z, 7);
-      peak.rotation.y = (i * 0.37) % Math.PI;
-      for (let j = 0; j < 3; j++) {
-        const tx = x + (j - 1) * 9;
-        const tz = z + (direction === 'x' ? 12 : -12);
-        this.#makeTree(parent, tx, tz, 1.3 + ((i + j) % 3) * 0.25, 1);
+      const wave = Math.sin((i + seed) * 1.7) * 7;
+      const x = centerX + (direction === 'x' ? t : wave);
+      const z = centerZ + (direction === 'z' ? t : wave * 0.7);
+      const radius = 17 + ((i * 11 + seed * 3) % 13);
+      const height = 27 + ((i * 17 + seed * 5) % 28);
+
+      // Wide green mountain foot and sloping body, overlapping neighbors into one range.
+      const foot = this.#mesh(shape, foothillMats[(i + seed) % foothillMats.length], parent, [x, 7, z], false);
+      foot.scale.set(radius * 1.9, 10 + height * 0.34, radius * 1.35);
+      foot.rotation.set(0.08 * Math.sin(i), (i * 0.31) % Math.PI, 0.06 * Math.cos(i));
+
+      const body = this.#mesh(shape, slopeMats[(i + seed + 1) % slopeMats.length], parent, [x + wave * 0.25, height * 0.42, z - 2], true);
+      body.scale.set(radius * 1.35, height * 0.82, radius * 1.08);
+      body.rotation.set(0.08 * Math.cos(i), (i * 0.47) % Math.PI, 0.05 * Math.sin(i));
+
+      // Smaller angular rock crown, deliberately not a sharp cone.
+      const crown = this.#mesh(new THREE.DodecahedronGeometry(1, 1), rockMats[(i * 3 + seed) % rockMats.length], parent, [x + wave * 0.35, height * 0.88, z - 4], true);
+      crown.scale.set(radius * 0.72, height * 0.52, radius * 0.68);
+      crown.rotation.set(0.12, (i * 0.63) % Math.PI, 0.09);
+
+      // Side shoulders break the repeated silhouette and blend adjacent peaks.
+      for (let side = -1; side <= 1; side += 2) {
+        const shoulder = this.#mesh(shape, foothillMats[(i + side + 5) % foothillMats.length], parent,
+          [x + side * radius * 0.92, 9 + height * 0.16, z + side * 3], false);
+        shoulder.scale.set(radius * 0.9, height * 0.38, radius * 0.82);
+        shoulder.rotation.y = (i * 0.29 + side) % Math.PI;
+      }
+
+      if (i % 2 === 0) {
+        this.#makeTree(parent, x - radius * 0.75, z + radius * 0.8, 1.4 + (i % 3) * 0.2, 1);
+        this.#makeTree(parent, x + radius * 0.8, z + radius * 0.65, 1.2 + (i % 2) * 0.25, 1);
       }
     }
   }
