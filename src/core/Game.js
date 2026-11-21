@@ -234,16 +234,72 @@ export class Game {
   }
 
   #buildMountainBoundary(parent) {
-    // Mountain chains surround the far edge, with winding trails and valley clearings.
-    this.#makeMountainRange(parent, 0, -142, 250, 'x', 3);
-    this.#makeMountainRange(parent, 0, 142, 250, 'x', 8);
-    this.#makeMountainRange(parent, -145, 0, 230, 'z', 5);
-    this.#makeMountainRange(parent, 145, 0, 230, 'z', 11);
-    const trail = this.#mat(0xb9a987);
-    this.#path(parent, [[-80,-88],[-95,-105],[-112,-118],[-122,-136],[-126,-151]], 4, trail);
-    this.#path(parent, [[65,78],[86,98],[104,115],[120,132],[128,150]], 4, trail);
-    this.#mesh(new THREE.CircleGeometry(10, 7), this.#mat(0x86b66d), parent, [-128,0.18,-112]).rotation.x = -Math.PI / 2;
-    this.#mesh(new THREE.CircleGeometry(12, 7), this.#mat(0x86b66d), parent, [126,0.18,120]).rotation.x = -Math.PI / 2;
+    // Three long mountain sides frame the village; the southern side stays open as an exit.
+    this.#makeMountainRange(parent, 0, -172, 330, 'x', 3);
+    this.#makeMountainRange(parent, -166, -18, 300, 'z', 5);
+    this.#makeMountainRange(parent, 166, -18, 300, 'z', 11);
+
+    // A broad natural causeway leaves the village through the open fourth side.
+    const meadow = this.#mat(0x6f9e5f);
+    const meadowLight = this.#mat(0x83ad6c);
+    for (let i = 0; i < 5; i++) {
+      const z = 112 + i * 23;
+      const land = this.#mesh(new THREE.IcosahedronGeometry(1, 1), i % 2 ? meadow : meadowLight, parent, [0, -0.4, z], false);
+      land.scale.set(24 + (i % 2) * 5, 3.2, 19);
+      land.rotation.y = i * 0.23;
+    }
+    const trail = this.#mat(0xcbb995);
+    this.#path(parent, [[0,82],[0,105],[2,128],[0,151],[-3,176],[0,202]], 7, trail);
+
+    // Low-poly trees and rocks make the new outer meadow feel like another explorable region.
+    for (let i = 0; i < 22; i++) {
+      const side = i % 2 ? 1 : -1;
+      const z = 122 + (i % 11) * 8;
+      const x = side * (17 + (i % 4) * 5);
+      this.#makeTree(parent, x, z, 1.05 + (i % 3) * 0.22, 1);
+    }
+    for (let i = 0; i < 12; i++) {
+      const x = (i % 2 ? 1 : -1) * (13 + (i % 3) * 7);
+      const z = 132 + i * 5;
+      this.#mesh(new THREE.DodecahedronGeometry(1.4, 0), this.#mat(0x8d9686), parent, [x, 0.6, z]);
+    }
+
+    // Waterfall viewpoint sits beside, not across, the main exit trail.
+    this.#buildWaterfall(parent, 48, 158);
+  }
+
+  #buildWaterfall(parent, x, z) {
+    const cliffMat = this.#mat(0x718477);
+    const rockMat = this.#mat(0x89978a);
+    const cliff = this.#mesh(new THREE.DodecahedronGeometry(1, 1), cliffMat, parent, [x, 12, z - 5], true);
+    cliff.scale.set(15, 19, 10);
+    cliff.rotation.set(0.08, 0.35, 0.04);
+    const ledge = this.#mesh(new THREE.DodecahedronGeometry(1, 0), rockMat, parent, [x, 22, z - 8], true);
+    ledge.scale.set(17, 5, 12);
+
+    const fallingWater = new THREE.Mesh(
+      new THREE.PlaneGeometry(10, 22, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x55c9e8, roughness: 0.22, metalness: 0.05, transparent: true, opacity: 0.88, side: THREE.DoubleSide })
+    );
+    fallingWater.position.set(x, 11, z + 1);
+    fallingWater.castShadow = false;
+    parent.add(fallingWater);
+
+    const pool = this.#mesh(new THREE.CircleGeometry(13, 10), this.#mat(0x48bdd8), parent, [x, 0.35, z + 5], false);
+    pool.rotation.x = -Math.PI / 2;
+    const sprayMat = this.#mat(0xb7e8ed);
+    for (let i = 0; i < 9; i++) {
+      this.#mesh(new THREE.DodecahedronGeometry(0.7, 0), sprayMat, parent,
+        [x - 4 + i * 0.95, 0.7 + (i % 3) * 0.25, z + 5 + Math.sin(i) * 2], false);
+    }
+    // Stones and greenery around the waterfall pool.
+    for (let i = 0; i < 7; i++) {
+      const angle = i * Math.PI * 2 / 7;
+      this.#mesh(new THREE.DodecahedronGeometry(1.6, 0), rockMat, parent,
+        [x + Math.cos(angle) * 14, 0.8, z + 5 + Math.sin(angle) * 11]);
+    }
+    this.#makeTree(parent, x - 17, z + 8, 1.25, 1);
+    this.#makeTree(parent, x + 17, z + 10, 1.35, 1);
   }
 
   #buildWorld() {
