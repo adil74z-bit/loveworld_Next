@@ -192,46 +192,43 @@ export class Game {
   }
 
   #makeMountainRange(parent, centerX, centerZ, length, direction = 'x', seed = 0) {
-    // Broad, layered low-poly mountain masses: rounded shoulders and broken rocky ridgelines.
+    // Distant, modest mountain silhouettes that frame the island without hiding the village.
     const foothillMats = [0x668b5d, 0x789b68, 0x587f55, 0x87a875].map(c => this.#mat(c));
     const slopeMats = [0x718b76, 0x829783, 0x667e70, 0x98a28e].map(c => this.#mat(c));
     const rockMats = [0x858f8d, 0x9da6a1, 0x727f7d, 0xb0b5aa].map(c => this.#mat(c));
-    const count = Math.max(7, Math.floor(length / 15));
+    const count = Math.max(6, Math.floor(length / 21));
     const shape = new THREE.IcosahedronGeometry(1, 1);
 
     for (let i = 0; i < count; i++) {
       const t = (i / (count - 1) - 0.5) * length;
-      const wave = Math.sin((i + seed) * 1.7) * 7;
+      const wave = Math.sin((i + seed) * 1.7) * 5;
       const x = centerX + (direction === 'x' ? t : wave);
       const z = centerZ + (direction === 'z' ? t : wave * 0.7);
-      const radius = 17 + ((i * 11 + seed * 3) % 13);
-      const height = 27 + ((i * 17 + seed * 5) % 28);
+      const radius = 10 + ((i * 7 + seed * 3) % 7);
+      const height = 17 + ((i * 11 + seed * 5) % 14);
 
-      // Wide green mountain foot and sloping body, overlapping neighbors into one range.
-      const foot = this.#mesh(shape, foothillMats[(i + seed) % foothillMats.length], parent, [x, 7, z], false);
-      foot.scale.set(radius * 1.9, 10 + height * 0.34, radius * 1.35);
-      foot.rotation.set(0.08 * Math.sin(i), (i * 0.31) % Math.PI, 0.06 * Math.cos(i));
+      const foot = this.#mesh(shape, foothillMats[(i + seed) % foothillMats.length], parent, [x, 4, z], false);
+      foot.scale.set(radius * 1.8, 7 + height * 0.25, radius * 1.25);
+      foot.rotation.set(0.06 * Math.sin(i), (i * 0.31) % Math.PI, 0.05 * Math.cos(i));
 
-      const body = this.#mesh(shape, slopeMats[(i + seed + 1) % slopeMats.length], parent, [x + wave * 0.25, height * 0.42, z - 2], true);
-      body.scale.set(radius * 1.35, height * 0.82, radius * 1.08);
-      body.rotation.set(0.08 * Math.cos(i), (i * 0.47) % Math.PI, 0.05 * Math.sin(i));
+      const body = this.#mesh(shape, slopeMats[(i + seed + 1) % slopeMats.length], parent, [x + wave * 0.25, height * 0.35, z - 1], true);
+      body.scale.set(radius * 1.2, height * 0.7, radius * 0.95);
+      body.rotation.set(0.06 * Math.cos(i), (i * 0.47) % Math.PI, 0.04 * Math.sin(i));
 
-      // Smaller angular rock crown, deliberately not a sharp cone.
-      const crown = this.#mesh(new THREE.DodecahedronGeometry(1, 1), rockMats[(i * 3 + seed) % rockMats.length], parent, [x + wave * 0.35, height * 0.88, z - 4], true);
-      crown.scale.set(radius * 0.72, height * 0.52, radius * 0.68);
-      crown.rotation.set(0.12, (i * 0.63) % Math.PI, 0.09);
+      const crown = this.#mesh(new THREE.DodecahedronGeometry(1, 1), rockMats[(i * 3 + seed) % rockMats.length], parent, [x + wave * 0.35, height * 0.72, z - 2], true);
+      crown.scale.set(radius * 0.52, height * 0.34, radius * 0.5);
+      crown.rotation.set(0.1, (i * 0.63) % Math.PI, 0.07);
 
-      // Side shoulders break the repeated silhouette and blend adjacent peaks.
       for (let side = -1; side <= 1; side += 2) {
         const shoulder = this.#mesh(shape, foothillMats[(i + side + 5) % foothillMats.length], parent,
-          [x + side * radius * 0.92, 9 + height * 0.16, z + side * 3], false);
-        shoulder.scale.set(radius * 0.9, height * 0.38, radius * 0.82);
+          [x + side * radius * 0.82, 6 + height * 0.1, z + side * 2], false);
+        shoulder.scale.set(radius * 0.62, height * 0.25, radius * 0.62);
         shoulder.rotation.y = (i * 0.29 + side) % Math.PI;
       }
 
-      if (i % 2 === 0) {
-        this.#makeTree(parent, x - radius * 0.75, z + radius * 0.8, 1.4 + (i % 3) * 0.2, 1);
-        this.#makeTree(parent, x + radius * 0.8, z + radius * 0.65, 1.2 + (i % 2) * 0.25, 1);
+      if (i % 3 === 0) {
+        this.#makeTree(parent, x - radius * 0.7, z + radius * 0.7, 1.1, 1);
+        this.#makeTree(parent, x + radius * 0.7, z + radius * 0.65, 1.0, 1);
       }
     }
   }
