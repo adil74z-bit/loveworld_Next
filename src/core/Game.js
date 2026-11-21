@@ -192,80 +192,86 @@ export class Game {
   }
 
   #makeMountainRange(parent, centerX, centerZ, length, direction = 'x', seed = 0) {
-    // Distant, modest mountain silhouettes that frame the island without hiding the village.
-    const foothillMats = [0x668b5d, 0x789b68, 0x587f55, 0x87a875].map(c => this.#mat(c));
+    // Uneven, curved mountain chains with broad feet that merge into the surrounding land.
+    const foothillMats = [0x587b50, 0x668b5d, 0x789b68, 0x52764d].map(c => this.#mat(c));
     const slopeMats = [0x718b76, 0x829783, 0x667e70, 0x98a28e].map(c => this.#mat(c));
     const rockMats = [0x858f8d, 0x9da6a1, 0x727f7d, 0xb0b5aa].map(c => this.#mat(c));
-    const count = Math.max(6, Math.floor(length / 21));
+    const count = Math.max(7, Math.floor(length / 18));
     const shape = new THREE.IcosahedronGeometry(1, 1);
 
     for (let i = 0; i < count; i++) {
       const t = (i / (count - 1) - 0.5) * length;
-      const wave = Math.sin((i + seed) * 1.7) * 5;
-      const x = centerX + (direction === 'x' ? t : wave);
-      const z = centerZ + (direction === 'z' ? t : wave * 0.7);
-      const radius = 10 + ((i * 7 + seed * 3) % 7);
-      const height = 17 + ((i * 11 + seed * 5) % 14);
+      const curve = Math.sin((i + seed) * 1.37) * 11;
+      const bend = Math.sin((t / length + 0.5) * Math.PI) * 20;
+      const x = centerX + (direction === 'x' ? t : curve + Math.sign(centerX || 1) * bend);
+      const z = centerZ + (direction === 'z' ? t + curve : -bend * 0.55 + curve * 0.35);
+      const radius = 13 + ((i * 7 + seed * 3) % 9);
+      const height = 19 + ((i * 11 + seed * 5) % 17);
 
-      const foot = this.#mesh(shape, foothillMats[(i + seed) % foothillMats.length], parent, [x, 4, z], false);
-      foot.scale.set(radius * 1.8, 7 + height * 0.25, radius * 1.25);
-      foot.rotation.set(0.06 * Math.sin(i), (i * 0.31) % Math.PI, 0.05 * Math.cos(i));
+      const foot = this.#mesh(shape, foothillMats[(i + seed) % foothillMats.length], parent, [x, 3.5, z], false);
+      foot.scale.set(radius * 2.05, 8 + height * 0.25, radius * 1.5);
+      foot.rotation.set(0.05 * Math.sin(i), (i * 0.31) % Math.PI, 0.04 * Math.cos(i));
 
-      const body = this.#mesh(shape, slopeMats[(i + seed + 1) % slopeMats.length], parent, [x + wave * 0.25, height * 0.35, z - 1], true);
-      body.scale.set(radius * 1.2, height * 0.7, radius * 0.95);
-      body.rotation.set(0.06 * Math.cos(i), (i * 0.47) % Math.PI, 0.04 * Math.sin(i));
+      const body = this.#mesh(shape, slopeMats[(i + seed + 1) % slopeMats.length], parent, [x + curve * 0.18, height * 0.34, z - 1], true);
+      body.scale.set(radius * 1.35, height * 0.68, radius * 1.12);
+      body.rotation.set(0.05 * Math.cos(i), (i * 0.47) % Math.PI, 0.04 * Math.sin(i));
 
-      const crown = this.#mesh(new THREE.DodecahedronGeometry(1, 1), rockMats[(i * 3 + seed) % rockMats.length], parent, [x + wave * 0.35, height * 0.72, z - 2], true);
-      crown.scale.set(radius * 0.52, height * 0.34, radius * 0.5);
+      const crown = this.#mesh(new THREE.DodecahedronGeometry(1, 1), rockMats[(i * 3 + seed) % rockMats.length], parent, [x + curve * 0.22, height * 0.68, z - 2], true);
+      crown.scale.set(radius * 0.58, height * 0.35, radius * 0.55);
       crown.rotation.set(0.1, (i * 0.63) % Math.PI, 0.07);
 
       for (let side = -1; side <= 1; side += 2) {
         const shoulder = this.#mesh(shape, foothillMats[(i + side + 5) % foothillMats.length], parent,
-          [x + side * radius * 0.82, 6 + height * 0.1, z + side * 2], false);
-        shoulder.scale.set(radius * 0.62, height * 0.25, radius * 0.62);
+          [x + side * radius * 0.82, 5 + height * 0.09, z + side * 2], false);
+        shoulder.scale.set(radius * 0.7, height * 0.24, radius * 0.7);
         shoulder.rotation.y = (i * 0.29 + side) % Math.PI;
       }
-
       if (i % 3 === 0) {
-        this.#makeTree(parent, x - radius * 0.7, z + radius * 0.7, 1.1, 1);
-        this.#makeTree(parent, x + radius * 0.7, z + radius * 0.65, 1.0, 1);
+        this.#makeTree(parent, x - radius * 0.72, z + radius * 0.68, 1.1, 1);
+        this.#makeTree(parent, x + radius * 0.72, z + radius * 0.7, 1.0, 1);
       }
     }
   }
 
   #buildMountainBoundary(parent) {
-    // Three long mountain sides frame the village; the southern side stays open as an exit.
-    this.#makeMountainRange(parent, 0, -172, 330, 'x', 3);
-    this.#makeMountainRange(parent, -166, -18, 300, 'z', 5);
-    this.#makeMountainRange(parent, 166, -18, 300, 'z', 11);
+    // A single irregular mainland apron joins the beach, foothills and mountain bases.
+    const landShape = new THREE.Shape();
+    const edge = [[-178,-178],[-142,-207],[-75,-220],[8,-225],[92,-208],[155,-174],[192,-118],[207,-48],[205,28],[182,92],[143,132],[91,159],[53,205],[18,242],[-18,235],[-49,194],[-94,164],[-148,130],[-185,76],[-207,8],[-204,-78]];
+    landShape.moveTo(edge[0][0], edge[0][1]);
+    edge.slice(1).forEach(p => landShape.lineTo(p[0], p[1]));
+    landShape.closePath();
+    const mainland = this.#mesh(new THREE.ShapeGeometry(landShape, 2), this.#mat(0x75a765), parent, [0, -0.18, 0], false);
+    mainland.rotation.x = -Math.PI / 2;
 
-    // A broad natural causeway leaves the village through the open fourth side.
-    const meadow = this.#mat(0x6f9e5f);
-    const meadowLight = this.#mat(0x83ad6c);
-    for (let i = 0; i < 5; i++) {
-      const z = 112 + i * 23;
-      const land = this.#mesh(new THREE.IcosahedronGeometry(1, 1), i % 2 ? meadow : meadowLight, parent, [0, -0.4, z], false);
-      land.scale.set(24 + (i % 2) * 5, 3.2, 19);
-      land.rotation.y = i * 0.23;
-    }
+    // Three curved mountain sides. The southern side keeps mountain shoulders, not a full wall.
+    this.#makeMountainRange(parent, 0, -174, 330, 'x', 3);
+    this.#makeMountainRange(parent, -164, -18, 300, 'z', 5);
+    this.#makeMountainRange(parent, 164, -18, 300, 'z', 11);
+    this.#makeMountainRange(parent, -103, 132, 78, 'x', 7);
+    this.#makeMountainRange(parent, 105, 137, 72, 'x', 13);
+
+    // Open valley road continues from the village into a larger outer meadow.
     const trail = this.#mat(0xcbb995);
-    this.#path(parent, [[0,82],[0,105],[2,128],[0,151],[-3,176],[0,202]], 7, trail);
-
-    // Low-poly trees and rocks make the new outer meadow feel like another explorable region.
-    for (let i = 0; i < 22; i++) {
+    this.#path(parent, [[0,78],[1,99],[0,122],[-3,146],[0,171],[8,198],[16,224]], 8, trail);
+    const meadowMats = [0x6f9e5f, 0x83ad6c, 0x78a967].map(c => this.#mat(c));
+    for (let i = 0; i < 13; i++) {
       const side = i % 2 ? 1 : -1;
-      const z = 122 + (i % 11) * 8;
-      const x = side * (17 + (i % 4) * 5);
-      this.#makeTree(parent, x, z, 1.05 + (i % 3) * 0.22, 1);
+      const z = 112 + (i % 7) * 15;
+      const x = side * (25 + (i % 4) * 11);
+      this.#makeTree(parent, x, z, 1.15 + (i % 3) * 0.2, 1);
+      if (i % 2 === 0) {
+        const shrub = this.#mesh(new THREE.IcosahedronGeometry(1, 1), meadowMats[i % meadowMats.length], parent, [x + side * 6, 0.9, z + 5], false);
+        shrub.scale.set(5, 2.2, 4);
+      }
     }
-    for (let i = 0; i < 12; i++) {
-      const x = (i % 2 ? 1 : -1) * (13 + (i % 3) * 7);
-      const z = 132 + i * 5;
-      this.#mesh(new THREE.DodecahedronGeometry(1.4, 0), this.#mat(0x8d9686), parent, [x, 0.6, z]);
+    for (let i = 0; i < 10; i++) {
+      const x = (i % 2 ? 1 : -1) * (18 + (i % 3) * 9);
+      const z = 130 + i * 8;
+      this.#mesh(new THREE.DodecahedronGeometry(1.5, 0), this.#mat(0x858e80), parent, [x, 0.7, z]);
     }
 
-    // Waterfall viewpoint sits beside, not across, the main exit trail.
-    this.#buildWaterfall(parent, 48, 158);
+    // Waterfall sits on the right-hand hillside, visible from the open valley trail.
+    this.#buildWaterfall(parent, 68, 164);
   }
 
   #buildWaterfall(parent, x, z) {
