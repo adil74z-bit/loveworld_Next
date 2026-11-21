@@ -191,6 +191,42 @@ export class Game {
     return temple;
   }
 
+  #makeMountainRange(parent, centerX, centerZ, length, direction = 'x', seed = 0) {
+    // Connected foothills with several low-poly peaks form a natural world boundary.
+    const earth = this.#mat(0x78936b);
+    const rock = [0x87918b,0x9ca49b,0x707d78,0xa4aaa0].map(c => this.#mat(c));
+    const count = Math.max(5, Math.floor(length / 18));
+    for (let i = 0; i < count; i++) {
+      const t = (i / (count - 1) - 0.5) * length;
+      const x = centerX + (direction === 'x' ? t : Math.sin(t / 22) * 8);
+      const z = centerZ + (direction === 'z' ? t : Math.cos(t / 25) * 8);
+      const baseR = 13 + ((i * 7 + seed) % 9);
+      const height = 22 + ((i * 13 + seed) % 35);
+      const foothill = this.#mesh(new THREE.DodecahedronGeometry(baseR, 1), earth, parent, [x, 5, z], false);
+      foothill.scale.set(1.7, 0.65, 1.25);
+      const peak = this.#cone(parent, baseR * 1.05, height, rock[(i + seed) % rock.length], x, height / 2 + 3, z, 7);
+      peak.rotation.y = (i * 0.37) % Math.PI;
+      for (let j = 0; j < 3; j++) {
+        const tx = x + (j - 1) * 9;
+        const tz = z + (direction === 'x' ? 12 : -12);
+        this.#makeTree(parent, tx, tz, 1.3 + ((i + j) % 3) * 0.25, 1);
+      }
+    }
+  }
+
+  #buildMountainBoundary(parent) {
+    // Mountain chains surround the far edge, with winding trails and valley clearings.
+    this.#makeMountainRange(parent, 0, -142, 250, 'x', 3);
+    this.#makeMountainRange(parent, 0, 142, 250, 'x', 8);
+    this.#makeMountainRange(parent, -145, 0, 230, 'z', 5);
+    this.#makeMountainRange(parent, 145, 0, 230, 'z', 11);
+    const trail = this.#mat(0xb9a987);
+    this.#path(parent, [[-80,-88],[-95,-105],[-112,-118],[-122,-136],[-126,-151]], 4, trail);
+    this.#path(parent, [[65,78],[86,98],[104,115],[120,132],[128,150]], 4, trail);
+    this.#mesh(new THREE.CircleGeometry(10, 7), this.#mat(0x86b66d), parent, [-128,0.18,-112]).rotation.x = -Math.PI / 2;
+    this.#mesh(new THREE.CircleGeometry(12, 7), this.#mat(0x86b66d), parent, [126,0.18,120]).rotation.x = -Math.PI / 2;
+  }
+
   #buildWorld() {
     const world = new THREE.Group();
     world.name = 'LowPolyLoveVillage';
@@ -297,14 +333,14 @@ export class Game {
       this.#box(world,0.25,1.4,0.25,wood,x-1.2,0.1,z);
       this.#box(world,0.25,1.4,0.25,wood,x+1.2,0.1,z);
     }
-    // Beach umbrellas, loungers, docks and shoreline activities.
+    // Coastal walking trail linking the village, beach, and ocean lookout.\n    this.#path(world, [[0,-55],[0,-75],[0,-92],[0,-108],[0,-124]], 4, pathMat);\n    // Beach umbrellas, loungers, docks and shoreline activities.
     for(let i=0;i<10;i++) {
       const x=-85+i*18,z=-(100+Math.random()*4);
       this.#cylinder(world,0.1,0.1,4,wood,x,2,z,5);
       this.#cone(world,3,1.1,this.#mat(i%2?0xff8f98:0xffd86e),x,4.2,z,8);
       this.#box(world,2.8,0.3,1.1,this.#mat(0xf7f0df),x+4,0.35,z+2);
     }
-    this.#box(world,26,0.5,5,bridgeMat,0,0.4,-112);
+    this.#box(world,26,0.5,5,bridgeMat,0,0.4,-112);\n    // Connected open-world perimeter: distant mountain ranges beyond the village.\n    this.#buildMountainBoundary(world);
     for(let i=0;i<8;i++) this.#box(world,1,0.5,5,wood,-12+i*3.4,0.75,-112);
     this.world=world;
     return world;
