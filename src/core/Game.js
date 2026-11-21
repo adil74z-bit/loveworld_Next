@@ -270,6 +270,47 @@ export class Game {
       this.#mesh(new THREE.DodecahedronGeometry(1.5, 0), this.#mat(0x858e80), parent, [x, 0.7, z]);
     }
 
+    // Continue the exit trail into a substantial second explorable mainland region.
+    const outerLand = new THREE.Shape();
+    const outerEdge = [[-52,168],[-88,205],[-112,260],[-126,322],[-108,390],[-72,455],[-18,505],[42,522],[101,492],[142,445],[158,386],[143,322],[119,270],[82,222],[48,184],[18,168]];
+    outerLand.moveTo(outerEdge[0][0], outerEdge[0][1]);
+    outerEdge.slice(1).forEach(p => outerLand.lineTo(p[0], p[1]));
+    outerLand.closePath();
+    const outerGround = this.#mesh(new THREE.ShapeGeometry(outerLand, 3), this.#mat(0x78a968), parent, [0, -0.12, 0], false);
+    outerGround.rotation.x = -Math.PI / 2;
+
+    // The path keeps going well beyond the original village boundary and winds through the new region.
+    this.#path(parent, [[0,198],[16,224],[25,250],[18,278],[4,306],[-5,335],[8,365],[28,394],[38,424],[25,452],[8,480]], 8, trail);
+    const forestTree = [0,1,2,3];
+    for (let i = 0; i < 58; i++) {
+      const side = i % 2 ? 1 : -1;
+      const z = 218 + (i * 19 % 270);
+      const x = side * (48 + (i * 13 % 66));
+      // Leave a generous clear corridor around the winding road.
+      if (Math.abs(x - (z < 278 ? 18 : z < 335 ? 5 : z < 394 ? 15 : 30)) < 19) continue;
+      this.#makeTree(parent, x, z, 1.05 + (i % 4) * 0.22, forestTree[i % forestTree.length]);
+    }
+    // Rolling grassy hills give the new mainland a natural horizon rather than a flat empty plane.
+    for (let i = 0; i < 13; i++) {
+      const side = i % 2 ? 1 : -1;
+      const z = 250 + (i * 31 % 225);
+      const x = side * (83 + (i * 17 % 42));
+      const hill = this.#mesh(new THREE.IcosahedronGeometry(1, 1), meadowMats[i % meadowMats.length], parent, [x, 1.5, z], false);
+      hill.scale.set(27 + (i % 3) * 7, 8 + (i % 4) * 2, 22 + (i % 2) * 6);
+      hill.rotation.y = i * 0.37;
+    }
+    // Small clearings, rocks and shrubs add detail between the forest and the trail.
+    for (let i = 0; i < 32; i++) {
+      const side = i % 2 ? 1 : -1;
+      const z = 235 + (i * 23 % 250);
+      const x = side * (28 + (i * 11 % 42));
+      this.#mesh(new THREE.DodecahedronGeometry(0.8 + (i % 3) * 0.35, 0), this.#mat(0x899184), parent, [x, 0.55, z]);
+      if (i % 3 === 0) {
+        const bush = this.#mesh(new THREE.IcosahedronGeometry(1, 1), meadowMats[(i + 1) % meadowMats.length], parent, [x + side * 5, 0.8, z + 3], false);
+        bush.scale.set(3.5, 2, 3);
+      }
+    }
+
     // Waterfall sits on the right-hand hillside, visible from the open valley trail.
     this.#buildWaterfall(parent, 68, 164);
   }
