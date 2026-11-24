@@ -484,7 +484,7 @@ export class Game {
   #buildPlayer() {
     const player = new THREE.Group();
     player.name = 'LoveWorldLowPolyPlayer';
-    player.position.set(0, 0.12, 42);
+    player.position.set(0, -0.10, 42);
     this.scene.add(player);
     this.player = player;
     this.playerLoaded = true;
@@ -495,9 +495,11 @@ export class Game {
     const skinLight = mat(0xe8b18a);
     const shirt = mat(0x3f83a6);
     const shirtLight = mat(0x5ba0bd);
+    const shirtDark = mat(0x2c6684);
     const pants = mat(0x34465c);
     const pantsLight = mat(0x465b70);
-    const shoes = mat(0x332c2a);
+    const shoes = mat(0x26313b);
+    const shoeTrim = mat(0xe2d4b5);
     const hair = mat(0x493024);
     const hairLight = mat(0x65432f);
     const eyeMat = mat(0x28252a);
@@ -520,6 +522,8 @@ export class Game {
     player.add(torso);
     this.playerAnimation.torso = torso;
     mesh(new THREE.CylinderGeometry(0.48, 0.39, 1.42, 7), shirt, torso, [0, 0, 0]);
+    mesh(new THREE.BoxGeometry(0.075, 0.82, 0.025), shirtDark, torso, [0, -0.02, 0.405]);
+    mesh(new THREE.BoxGeometry(0.24, 0.12, 0.035), shirtLight, torso, [0, 0.57, 0.39]);
     mesh(new THREE.SphereGeometry(0.48, 7, 5), shirtLight, torso, [0, 0.58, 0], [1.12, 0.46, 0.88]);
     mesh(new THREE.BoxGeometry(0.18, 0.16, 0.16), belt, torso, [0, -0.76, 0.02]);
     mesh(new THREE.CylinderGeometry(0.17, 0.19, 0.25, 7), skin, torso, [0, 0.83, 0]);
@@ -552,8 +556,10 @@ export class Game {
       leg.add(calf);
       this.playerAnimation.lowerLegs.push(calf);
       mesh(new THREE.CylinderGeometry(0.17, 0.145, 0.72, 6), pants, calf, [0, -0.36, 0]);
-      mesh(new THREE.BoxGeometry(0.35, 0.22, 0.64), shoes, calf, [0, -0.75, 0.11]);
-      mesh(new THREE.BoxGeometry(0.36, 0.055, 0.65), belt, calf, [0, -0.87, 0.11]);
+      // Low-poly sneakers: the sole is aligned with the world ground plane.
+      mesh(new THREE.BoxGeometry(0.36, 0.20, 0.66), shoes, calf, [0, -0.75, 0.13]);
+      mesh(new THREE.BoxGeometry(0.37, 0.045, 0.67), shoeTrim, calf, [0, -0.87, 0.13]);
+      mesh(new THREE.BoxGeometry(0.22, 0.035, 0.035), white, calf, [0, -0.69, 0.465]);
     }
 
     // Hanging arms, elbow joints and hands. Swing is driven by the walk/run cycle.
@@ -572,7 +578,7 @@ export class Game {
     }
 
     this.cameraFollowLast.copy(player.position);
-    this.controls.target.set(0, 2.45, 42);
+    this.controls.target.set(0, 2.35, 42);
     this.camera.position.set(0, 7.1, 57);
     this.controls.minDistance = 6;
     this.controls.maxDistance = 22;
@@ -621,8 +627,8 @@ export class Game {
     }
     this.playerVelocityY -= 25 * dt;
     this.player.position.y += this.playerVelocityY * dt;
-    if (this.player.position.y <= 0.12) {
-      this.player.position.y = 0.12;
+    if (this.player.position.y <= -0.10) {
+      this.player.position.y = -0.10;
       this.playerVelocityY = 0;
       this.playerOnGround = true;
     }
