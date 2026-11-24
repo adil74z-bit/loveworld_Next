@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export class Game {
   constructor(canvas) {
@@ -484,52 +485,19 @@ export class Game {
   #buildPlayer() {
     const player = new THREE.Group();
     player.name = 'LoveWorldPlayer';
-    const skin = this.#mat(0xe8b995);
-    const shirt = this.#mat(0xf4f0e8);
-    const trousers = this.#mat(0x263448);
-    const shoes = this.#mat(0x292b32);
-    const hair = this.#mat(0x382a24);
-    const eyes = new THREE.MeshStandardMaterial({ color: 0x25232a, roughness: 0.8 });
-
-    // Temporary starter avatar. This will later be replaced by the character creator model.
-    this.#mesh(new THREE.BoxGeometry(1.35, 1.75, 0.78), shirt, player, [0, 2.65, 0]);
-    const neck = this.#mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.32, 8), skin, player, [0, 3.62, 0]);
-    const head = this.#mesh(new THREE.SphereGeometry(0.53, 12, 10), skin, player, [0, 4.25, -0.02]);
-    head.scale.set(0.92, 1.08, 0.92);
-    const hairCap = this.#mesh(new THREE.SphereGeometry(0.54, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.52), hair, player, [0, 4.48, 0.02]);
-    hairCap.scale.set(0.98, 0.8, 0.98);
-    for (const x of [-0.19, 0.19]) {
-      this.#mesh(new THREE.SphereGeometry(0.055, 6, 5), eyes, player, [x, 4.27, -0.48], false);
-    }
-    this.#mesh(new THREE.BoxGeometry(0.28, 0.1, 0.08), skin, player, [0, 4.02, -0.49], false);
-
-    const arms = [];
-    for (const side of [-1, 1]) {
-      const arm = new THREE.Group();
-      arm.position.set(side * 0.78, 3.35, 0);
-      this.#mesh(new THREE.CylinderGeometry(0.17, 0.14, 1.25, 7), shirt, arm, [0, -0.58, 0]);
-      this.#mesh(new THREE.SphereGeometry(0.17, 7, 6), skin, arm, [0, -1.22, 0]);
-      player.add(arm);
-      arms.push(arm);
-
-      const leg = new THREE.Group();
-      leg.position.set(side * 0.36, 1.85, 0);
-      this.#mesh(new THREE.CylinderGeometry(0.23, 0.2, 1.35, 7), trousers, leg, [0, -0.68, 0]);
-      this.#mesh(new THREE.BoxGeometry(0.48, 0.28, 0.78), shoes, leg, [0, -1.38, -0.16]);
-      player.add(leg);
-      if (!this.playerLegs) this.playerLegs = [];
-      this.playerLegs.push(leg);
-    }
-
     player.position.set(0, 0, 42);
-    player.userData.arms = arms;
     this.scene.add(player);
     this.player = player;
+    this.playerMixer = null;
+    this.playerActions = {};
+    this.activePlayerAction = null;
+    this.playerLoaded = false;
     this.cameraFollowLast.copy(player.position);
-    this.controls.target.set(0, 3, 42);
-    this.camera.position.set(0, 10, 66);
-    this.controls.minDistance = 8;
-    this.controls.maxDistance = 38;
+
+    this.controls.target.set(0, 2.4, 42);
+    this.camera.position.set(0, 8.2, 59);
+    this.controls.minDistance = 7;
+    this.controls.maxDistance = 24;
     this.controls.enablePan = false;
     this.controls.update();
 
@@ -541,7 +509,51 @@ export class Game {
     });
     window.addEventListener('keyup', (event) => { this.playerKeys[event.code] = false; });
     window.addEventListener('blur', () => { this.playerKeys = Object.create(null); });
+
+    // These are the user's original rigged GLB characters, with walk and run clips.
+    const loader = new GLTFLoader();
+    loader.load('/models/man-base-character-rigged.glb', (gltf) => {
+      const model = gltf.scene;
+      model.name = 'RiggedMaleCharacter';
+      model.traverse((node) => {
+        if (node.isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+          if (node.material) {
+            node.material.side = THREE.DoubleSide;
+          }
+        }
+      });
+
+      // Normalize imported model scale and ground its feet at y=0.
+      model.updateMatrixWorld(true);
+      const bounds = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      const center = new THREE.Vector3();
+      bounds.getSize(size);
+      bounds.getCenter(center);
+      const targetHeight = 4.8;
+      const scale = targetHeight / Math.max(size.y, 0.001);
+      model.scale.setScalar(scale);
+      model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
+      player.add(model);
+
+      this.playerMixer = new THREE.AnimationMixer(model);
+      for (const clip of gltf.animations) {
+        const key = clip.name.toLowerCase();
+        if (key.includes('walk')) this.playerActions.walk = this.playerMixer.clipAction(clip);
+        if (key.includes('run')) this.playerActions.run = this.playerMixer.clipAction(clip);
+      }
+      this.playerLoaded = true;
+      this.#status('Character ready! WASD move | Shift run | Space jump | Drag camera.', true);
+      this.debugHandler?.('Original rigged male character | Walk + run animations | Third-person camera');
+    }, undefined, (error) => {
+      console.error('Could not load /models/man-base-character-rigged.glb', error);
+      this.#status('Character model missing. Add both GLB files to public/models.', false);
+      this.debugHandler?.('Waiting for rigged character files in public/models');
+    });
   }
+
 
   #updatePlayer(dt) {
     if (!this.player) return;
@@ -578,9 +590,21 @@ export class Game {
     }
 
     const moving = this.moveDirection.lengthSq() > 0;
-    const swing = moving && this.playerOnGround ? Math.sin(this.walkTime) * 0.55 : 0;
-    this.playerLegs?.forEach((leg, i) => { leg.rotation.x = i === 0 ? swing : -swing; });
-    this.player.userData.arms?.forEach((arm, i) => { arm.rotation.x = i === 0 ? -swing * 0.8 : swing * 0.8; });
+    if (this.playerMixer) {
+      const desired = moving ? ((keys.ShiftLeft || keys.ShiftRight) ? 'run' : 'walk') : null;
+      if (desired !== this.activePlayerAction) {
+        const nextAction = desired ? this.playerActions[desired] : null;
+        const previousAction = this.activePlayerAction ? this.playerActions[this.activePlayerAction] : null;
+        if (nextAction) {
+          nextAction.reset().fadeIn(0.18).play();
+          if (previousAction) nextAction.crossFadeFrom(previousAction, 0.18, true);
+        } else if (previousAction) {
+          previousAction.fadeOut(0.15);
+        }
+        this.activePlayerAction = nextAction ? desired : null;
+      }
+      this.playerMixer.update(dt);
+    }
 
     // Translate camera and OrbitControls target by the avatar's movement delta,
     // preserving the user's current orbit angle and zoom distance.
@@ -594,8 +618,8 @@ export class Game {
     this.#status('Creating your new low-poly village...');
     this.#buildWorld();
     this.#buildPlayer();
-    this.#status('Village ready! WASD move | Shift run | Space jump | Drag camera.',true);
-    this.debugHandler?.('Starter avatar | WASD move | Shift run | Space jump | Drag to rotate camera');
+    this.#status('Loading your rigged character...', false);
+    this.debugHandler?.('Loading original rigged character | Walk + run animations');
     this.renderer.setAnimationLoop(() => this.#tick());
   }
 
