@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 export class Game {
   constructor(canvas) {
@@ -484,20 +483,99 @@ export class Game {
 
   #buildPlayer() {
     const player = new THREE.Group();
-    player.name = 'LoveWorldPlayer';
+    player.name = 'LoveWorldLowPolyPlayer';
     player.position.set(0, 0.12, 42);
     this.scene.add(player);
     this.player = player;
-    this.playerMixer = null;
-    this.playerActions = {};
-    this.activePlayerAction = null;
-    this.playerLoaded = false;
-    this.cameraFollowLast.copy(player.position);
+    this.playerLoaded = true;
+    this.playerAnimation = { time: 0, legs: [], arms: [], lowerArms: [], lowerLegs: [], torso: null, head: null };
 
-    this.controls.target.set(0, 2.4, 42);
-    this.camera.position.set(0, 8.2, 59);
-    this.controls.minDistance = 7;
-    this.controls.maxDistance = 24;
+    const mat = (color, roughness = 1) => new THREE.MeshStandardMaterial({ color, roughness, flatShading: true });
+    const skin = mat(0xd99a70);
+    const skinLight = mat(0xe8b18a);
+    const shirt = mat(0x3f83a6);
+    const shirtLight = mat(0x5ba0bd);
+    const pants = mat(0x34465c);
+    const pantsLight = mat(0x465b70);
+    const shoes = mat(0x332c2a);
+    const hair = mat(0x493024);
+    const hairLight = mat(0x65432f);
+    const eyeMat = mat(0x28252a);
+    const white = mat(0xf4eee0);
+    const belt = mat(0x292d32);
+
+    const mesh = (geometry, material, parent, position, scale) => {
+      const item = new THREE.Mesh(geometry, material);
+      item.position.set(...position);
+      if (scale) item.scale.set(...scale);
+      item.castShadow = true;
+      item.receiveShadow = true;
+      parent.add(item);
+      return item;
+    };
+
+    // Torso and neck: intentionally chunky, readable low-poly proportions.
+    const torso = new THREE.Group();
+    torso.position.y = 2.62;
+    player.add(torso);
+    this.playerAnimation.torso = torso;
+    mesh(new THREE.CylinderGeometry(0.48, 0.39, 1.42, 7), shirt, torso, [0, 0, 0]);
+    mesh(new THREE.SphereGeometry(0.48, 7, 5), shirtLight, torso, [0, 0.58, 0], [1.12, 0.46, 0.88]);
+    mesh(new THREE.BoxGeometry(0.18, 0.16, 0.16), belt, torso, [0, -0.76, 0.02]);
+    mesh(new THREE.CylinderGeometry(0.17, 0.19, 0.25, 7), skin, torso, [0, 0.83, 0]);
+
+    // Head, simple hair silhouette and friendly face. The character faces local +Z.
+    const head = new THREE.Group();
+    head.position.set(0, 1.22, 0.015);
+    torso.add(head);
+    this.playerAnimation.head = head;
+    mesh(new THREE.SphereGeometry(0.46, 9, 7), skinLight, head, [0, 0.12, 0], [0.91, 1.08, 0.88]);
+    mesh(new THREE.SphereGeometry(0.465, 9, 6, 0, Math.PI * 2, 0, Math.PI * 0.58), hair, head, [0, 0.29, -0.015], [1.02, 0.96, 1.0]);
+    mesh(new THREE.IcosahedronGeometry(0.19, 0), hairLight, head, [0.17, 0.48, 0.12], [1.3, 0.55, 0.8]);
+    for (const x of [-0.17, 0.17]) {
+      mesh(new THREE.SphereGeometry(0.045, 6, 5), white, head, [x, 0.13, 0.397]);
+      mesh(new THREE.SphereGeometry(0.025, 5, 4), eyeMat, head, [x, 0.13, 0.432]);
+    }
+    mesh(new THREE.SphereGeometry(0.055, 6, 5), skin, head, [0, 0.015, 0.43], [0.8, 1.0, 0.7]);
+    mesh(new THREE.BoxGeometry(0.14, 0.025, 0.025), hair, head, [0, -0.12, 0.405]);
+
+    // Articulated legs with distinct knees, calves and shoes; soles align with y=0.
+    for (const side of [-1, 1]) {
+      const leg = new THREE.Group();
+      leg.position.set(side * 0.23, 1.82, 0);
+      player.add(leg);
+      this.playerAnimation.legs.push(leg);
+      mesh(new THREE.CylinderGeometry(0.23, 0.19, 0.82, 6), pants, leg, [0, -0.42, 0]);
+      mesh(new THREE.SphereGeometry(0.2, 7, 5), pantsLight, leg, [0, -0.81, 0]);
+      const calf = new THREE.Group();
+      calf.position.set(0, -0.82, 0);
+      leg.add(calf);
+      this.playerAnimation.lowerLegs.push(calf);
+      mesh(new THREE.CylinderGeometry(0.17, 0.145, 0.72, 6), pants, calf, [0, -0.36, 0]);
+      mesh(new THREE.BoxGeometry(0.35, 0.22, 0.64), shoes, calf, [0, -0.75, 0.11]);
+      mesh(new THREE.BoxGeometry(0.36, 0.055, 0.65), belt, calf, [0, -0.87, 0.11]);
+    }
+
+    // Hanging arms, elbow joints and hands. Swing is driven by the walk/run cycle.
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Group();
+      arm.position.set(side * 0.57, 3.19, 0);
+      player.add(arm);
+      this.playerAnimation.arms.push(arm);
+      mesh(new THREE.CylinderGeometry(0.17, 0.14, 0.72, 6), shirt, arm, [0, -0.35, 0]);
+      const forearm = new THREE.Group();
+      forearm.position.set(0, -0.68, 0);
+      arm.add(forearm);
+      this.playerAnimation.lowerArms.push(forearm);
+      mesh(new THREE.CylinderGeometry(0.13, 0.105, 0.65, 6), skinLight, forearm, [0, -0.32, 0]);
+      mesh(new THREE.SphereGeometry(0.14, 6, 5), skin, forearm, [0, -0.69, 0.02]);
+    }
+
+    this.cameraFollowLast.copy(player.position);
+    this.controls.target.set(0, 2.45, 42);
+    this.camera.position.set(0, 7.1, 57);
+    this.controls.minDistance = 6;
+    this.controls.maxDistance = 22;
     this.controls.enablePan = false;
     this.controls.update();
 
@@ -509,57 +587,8 @@ export class Game {
     });
     window.addEventListener('keyup', (event) => { this.playerKeys[event.code] = false; });
     window.addEventListener('blur', () => { this.playerKeys = Object.create(null); });
-
-    // These are the user's original rigged GLB characters, with walk and run clips.
-    const loader = new GLTFLoader();
-    loader.load('/models/man-base-character-rigged.glb', (gltf) => {
-      const model = gltf.scene;
-      model.name = 'RiggedMaleCharacter';
-      model.traverse((node) => {
-        if (node.isMesh) {
-          node.castShadow = true;
-          node.receiveShadow = true;
-          if (node.material) {
-            node.material.side = THREE.DoubleSide;
-          }
-        }
-      });
-
-      // Normalize to a human-sized avatar, then measure again after scaling so the soles
-      // sit exactly on the island's walkable surface (the beach top is y=0.12).
-      model.updateMatrixWorld(true);
-      const bounds = new THREE.Box3().setFromObject(model);
-      const size = new THREE.Vector3();
-      const center = new THREE.Vector3();
-      bounds.getSize(size);
-      bounds.getCenter(center);
-      const targetHeight = 4.6;
-      const scale = targetHeight / Math.max(size.y, 0.001);
-      model.scale.setScalar(scale);
-      model.position.set(-center.x * scale, 0, -center.z * scale);
-      model.updateMatrixWorld(true);
-      const scaledBounds = new THREE.Box3().setFromObject(model);
-      model.position.y -= scaledBounds.min.y;
-      player.add(model);
-
-      this.playerMixer = new THREE.AnimationMixer(model);
-      for (const clip of gltf.animations) {
-        const key = clip.name.toLowerCase();
-        // Keep the body's skeletal motion but remove animated Hips translation/root drift;
-        // the game controller owns world movement and jumping.
-        clip.tracks = clip.tracks.filter(track => !track.name.toLowerCase().includes('hips.position'));
-        if (key.includes('walk')) this.playerActions.walk = this.playerMixer.clipAction(clip);
-        if (key.includes('run')) this.playerActions.run = this.playerMixer.clipAction(clip);
-      }
-      // Start from a neutral facing direction; movement code below turns the avatar into travel.
-      this.playerLoaded = true;
-      this.#status('Character ready! WASD move | Shift run | Space jump | Drag camera.', true);
-      this.debugHandler?.('Original rigged male character | Walk + run animations | Third-person camera');
-    }, undefined, (error) => {
-      console.error('Could not load /models/man-base-character-rigged.glb', error);
-      this.#status('Character model missing. Add both GLB files to public/models.', false);
-      this.debugHandler?.('Waiting for rigged character files in public/models');
-    });
+    this.#status('Low-poly character ready! WASD move | Shift run | Space jump.', true);
+    this.debugHandler?.('Low-poly player | Procedural walk, run and jump animation');
   }
 
 
@@ -592,27 +621,36 @@ export class Game {
     }
     this.playerVelocityY -= 25 * dt;
     this.player.position.y += this.playerVelocityY * dt;
-    if (this.player.position.y <= 0) {
-      this.player.position.y = 0;
+    if (this.player.position.y <= 0.12) {
+      this.player.position.y = 0.12;
       this.playerVelocityY = 0;
       this.playerOnGround = true;
     }
 
     const moving = this.moveDirection.lengthSq() > 0;
-    if (this.playerMixer) {
-      const desired = moving ? ((keys.ShiftLeft || keys.ShiftRight) ? 'run' : 'walk') : null;
-      if (desired !== this.activePlayerAction) {
-        const nextAction = desired ? this.playerActions[desired] : null;
-        const previousAction = this.activePlayerAction ? this.playerActions[this.activePlayerAction] : null;
-        if (nextAction) {
-          nextAction.reset().fadeIn(0.18).play();
-          if (previousAction) nextAction.crossFadeFrom(previousAction, 0.18, true);
-        } else if (previousAction) {
-          previousAction.fadeOut(0.15);
-        }
-        this.activePlayerAction = nextAction ? desired : null;
+    const running = keys.ShiftLeft || keys.ShiftRight;
+    const anim = this.playerAnimation;
+    if (anim) {
+      const rate = running ? 13.5 : 9.2;
+      anim.time += dt * (moving ? rate : 2.2);
+      const stride = moving ? (running ? 0.82 : 0.56) : 0.035;
+      const swing = Math.sin(anim.time) * stride;
+      anim.legs.forEach((leg, i) => { leg.rotation.x = moving ? (i === 0 ? swing : -swing) : Math.sin(anim.time + i) * 0.018; });
+      anim.lowerLegs.forEach((leg, i) => { leg.rotation.x = moving ? Math.max(0, (i === 0 ? -swing : swing)) * 0.7 : 0; });
+      anim.arms.forEach((arm, i) => { arm.rotation.x = moving ? (i === 0 ? -swing * 0.82 : swing * 0.82) : Math.sin(anim.time + i) * 0.025; });
+      anim.lowerArms.forEach((arm) => { arm.rotation.x = moving ? -0.12 : 0.04; });
+      if (anim.torso) {
+        anim.torso.position.y = 2.62 + (moving ? Math.abs(Math.sin(anim.time * 2)) * (running ? 0.075 : 0.035) : Math.sin(anim.time) * 0.012);
+        anim.torso.rotation.z = moving ? Math.sin(anim.time) * 0.035 : 0;
       }
-      this.playerMixer.update(dt);
+      if (anim.head) {
+        anim.head.rotation.x = moving ? -0.025 : 0;
+        anim.head.rotation.z = moving ? -Math.sin(anim.time) * 0.018 : 0;
+      }
+      if (!this.playerOnGround) {
+        anim.legs.forEach((leg, i) => { leg.rotation.x = i === 0 ? -0.32 : 0.42; });
+        anim.arms.forEach((arm, i) => { arm.rotation.x = i === 0 ? -0.8 : -0.8; });
+      }
     }
 
     // Translate camera and OrbitControls target by the avatar's movement delta,
@@ -627,8 +665,8 @@ export class Game {
     this.#status('Creating your new low-poly village...');
     this.#buildWorld();
     this.#buildPlayer();
-    this.#status('Loading your rigged character...', false);
-    this.debugHandler?.('Loading original rigged character | Walk + run animations');
+    this.#status('Low-poly character ready! WASD move | Shift run | Space jump.', true);
+    this.debugHandler?.('Low-poly player | Procedural walk, run and jump animation');
     this.renderer.setAnimationLoop(() => this.#tick());
   }
 
