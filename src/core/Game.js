@@ -11,6 +11,14 @@ export class Game {
     this.fpsTimer = 0;
     this.fps = 0;
     this.world = null;
+    this.player = null;
+    this.playerKeys = Object.create(null);
+    this.playerVelocityY = 0;
+    this.playerOnGround = true;
+    this.walkTime = 0;
+    this.moveDirection = new THREE.Vector3();
+    this.cameraForward = new THREE.Vector3();
+    this.cameraRight = new THREE.Vector3();
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -472,26 +480,130 @@ export class Game {
     return world;
   }
 
+  #buildPlayer() {
+    const player = new THREE.Group();
+    player.name = 'LoveWorldPlayer';
+    const skin = this.#mat(0xe8b995);
+    const shirt = this.#mat(0xf4f0e8);
+    const trousers = this.#mat(0x263448);
+    const shoes = this.#mat(0x292b32);
+    const hair = this.#mat(0x382a24);
+    const eyes = new THREE.MeshStandardMaterial({ color: 0x25232a, roughness: 0.8 });
+
+    // Temporary starter avatar. This will later be replaced by the character creator model.
+    this.#mesh(new THREE.BoxGeometry(1.35, 1.75, 0.78), shirt, player, [0, 2.65, 0]);
+    const neck = this.#mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.32, 8), skin, player, [0, 3.62, 0]);
+    const head = this.#mesh(new THREE.SphereGeometry(0.53, 12, 10), skin, player, [0, 4.25, -0.02]);
+    head.scale.set(0.92, 1.08, 0.92);
+    const hairCap = this.#mesh(new THREE.SphereGeometry(0.54, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.52), hair, player, [0, 4.48, 0.02]);
+    hairCap.scale.set(0.98, 0.8, 0.98);
+    for (const x of [-0.19, 0.19]) {
+      this.#mesh(new THREE.SphereGeometry(0.055, 6, 5), eyes, player, [x, 4.27, -0.48], false);
+    }
+    this.#mesh(new THREE.BoxGeometry(0.28, 0.1, 0.08), skin, player, [0, 4.02, -0.49], false);
+
+    const arms = [];
+    for (const side of [-1, 1]) {
+      const arm = new THREE.Group();
+      arm.position.set(side * 0.78, 3.35, 0);
+      this.#mesh(new THREE.CylinderGeometry(0.17, 0.14, 1.25, 7), shirt, arm, [0, -0.58, 0]);
+      this.#mesh(new THREE.SphereGeometry(0.17, 7, 6), skin, arm, [0, -1.22, 0]);
+      player.add(arm);
+      arms.push(arm);
+
+      const leg = new THREE.Group();
+      leg.position.set(side * 0.36, 1.85, 0);
+      this.#mesh(new THREE.CylinderGeometry(0.23, 0.2, 1.35, 7), trousers, leg, [0, -0.68, 0]);
+      this.#mesh(new THREE.BoxGeometry(0.48, 0.28, 0.78), shoes, leg, [0, -1.38, -0.16]);
+      player.add(leg);
+      if (!this.playerLegs) this.playerLegs = [];
+      this.playerLegs.push(leg);
+    }
+
+    player.position.set(0, 0, 42);
+    player.userData.arms = arms;
+    this.scene.add(player);
+    this.player = player;
+    this.controls.target.set(0, 3, 42);
+    this.camera.position.set(0, 10, 66);
+    this.controls.minDistance = 8;
+    this.controls.maxDistance = 38;
+    this.controls.enablePan = false;
+    this.controls.update();
+
+    this.canvas.tabIndex = 0;
+    this.canvas.setAttribute('aria-label', 'Love World game. Use W A S D or arrow keys to move, Shift to run, Space to jump. Drag to rotate camera.');
+    window.addEventListener('keydown', (event) => {
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(event.code)) event.preventDefault();
+      this.playerKeys[event.code] = true;
+    });
+    window.addEventListener('keyup', (event) => { this.playerKeys[event.code] = false; });
+    window.addEventListener('blur', () => { this.playerKeys = Object.create(null); });
+  }
+
+  #updatePlayer(dt) {
+    if (!this.player) return;
+    const keys = this.playerKeys;
+    const forwardInput = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+    const sideInput = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+
+    this.camera.getWorldDirection(this.cameraForward);
+    this.cameraForward.y = 0;
+    this.cameraForward.normalize();
+    this.cameraRight.crossVectors(this.cameraForward, new THREE.Vector3(0, 1, 0)).normalize();
+
+    this.moveDirection.set(0, 0, 0);
+    this.moveDirection.addScaledVector(this.cameraForward, forwardInput);
+    this.moveDirection.addScaledVector(this.cameraRight, sideInput);
+    if (this.moveDirection.lengthSq() > 0) {
+      this.moveDirection.normalize();
+      const speed = keys.ShiftLeft || keys.ShiftRight ? 23 : 14;
+      this.player.position.addScaledVector(this.moveDirection, speed * dt);
+      this.player.rotation.y = Math.atan2(-this.moveDirection.x, -this.moveDirection.z);
+      this.walkTime += dt * (speed === 23 ? 12 : 8);
+    }
+
+    if ((keys.Space || keys.KeyJ) && this.playerOnGround) {
+      this.playerVelocityY = 10.5;
+      this.playerOnGround = false;
+    }
+    this.playerVelocityY -= 25 * dt;
+    this.player.position.y += this.playerVelocityY * dt;
+    if (this.player.position.y <= 0) {
+      this.player.position.y = 0;
+      this.playerVelocityY = 0;
+      this.playerOnGround = true;
+    }
+
+    const moving = this.moveDirection.lengthSq() > 0;
+    const swing = moving && this.playerOnGround ? Math.sin(this.walkTime) * 0.55 : 0;
+    this.playerLegs?.forEach((leg, i) => { leg.rotation.x = i === 0 ? swing : -swing; });
+    this.player.userData.arms?.forEach((arm, i) => { arm.rotation.x = i === 0 ? -swing * 0.8 : swing * 0.8; });
+
+    // Keep the third-person camera target locked to the moving avatar while OrbitControls
+    // preserves the user's drag-to-rotate and scroll/pinch-to-zoom input.
+    this.controls.target.set(this.player.position.x, this.player.position.y + 3, this.player.position.z);
+  }
+
   start() {
     this.#status('Creating your new low-poly village...');
     this.#buildWorld();
-    this.controls.target.set(0,5,0);
-    this.camera.position.set(205,175,235);
-    this.controls.update();
-    this.#status('Village map ready! Drag to explore and scroll/pinch to zoom.',true);
-    this.debugHandler?.('Procedural village map | Temple plaza | 16 walk-in homes | market | gardens | beach');
+    this.#buildPlayer();
+    this.#status('Village ready! WASD move | Shift run | Space jump | Drag camera.',true);
+    this.debugHandler?.('Starter avatar | WASD move | Shift run | Space jump | Drag to rotate camera');
     this.renderer.setAnimationLoop(() => this.#tick());
   }
 
   stop() { this.renderer.setAnimationLoop(null); }
 
   #tick() {
-    const dt=this.clock.getDelta();
+    const dt=Math.min(this.clock.getDelta(), 0.05);
+    this.#updatePlayer(dt);
     this.controls.update();
     this.frames++;this.fpsTimer+=dt;
     if(this.fpsTimer>=0.5){
       this.fps=Math.round(this.frames/this.fpsTimer);this.frames=0;this.fpsTimer=0;
-      this.debugHandler?.(`FPS: ${this.fps} | Village map ready`);
+      this.debugHandler?.(`FPS: ${this.fps} | Player movement active`);
     }
     this.renderer.render(this.scene,this.camera);
   }
