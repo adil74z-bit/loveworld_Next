@@ -17,6 +17,7 @@ export class Game {
     this.playerOnGround = true;
     this.walkTime = 0;
     this.moveDirection = new THREE.Vector3();
+    this.cameraFollowLast = new THREE.Vector3();
     this.cameraForward = new THREE.Vector3();
     this.cameraRight = new THREE.Vector3();
 
@@ -524,6 +525,7 @@ export class Game {
     player.userData.arms = arms;
     this.scene.add(player);
     this.player = player;
+    this.cameraFollowLast.copy(player.position);
     this.controls.target.set(0, 3, 42);
     this.camera.position.set(0, 10, 66);
     this.controls.minDistance = 8;
@@ -580,9 +582,12 @@ export class Game {
     this.playerLegs?.forEach((leg, i) => { leg.rotation.x = i === 0 ? swing : -swing; });
     this.player.userData.arms?.forEach((arm, i) => { arm.rotation.x = i === 0 ? -swing * 0.8 : swing * 0.8; });
 
-    // Keep the third-person camera target locked to the moving avatar while OrbitControls
-    // preserves the user's drag-to-rotate and scroll/pinch-to-zoom input.
-    this.controls.target.set(this.player.position.x, this.player.position.y + 3, this.player.position.z);
+    // Translate camera and OrbitControls target by the avatar's movement delta,
+    // preserving the user's current orbit angle and zoom distance.
+    const followDelta = this.player.position.clone().sub(this.cameraFollowLast);
+    this.camera.position.add(followDelta);
+    this.controls.target.add(followDelta);
+    this.cameraFollowLast.copy(this.player.position);
   }
 
   start() {
