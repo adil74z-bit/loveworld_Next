@@ -485,7 +485,7 @@ export class Game {
   #buildPlayer() {
     const player = new THREE.Group();
     player.name = 'LoveWorldPlayer';
-    player.position.set(0, 0, 42);
+    player.position.set(0, 0.12, 42);
     this.scene.add(player);
     this.player = player;
     this.playerMixer = null;
@@ -525,25 +525,33 @@ export class Game {
         }
       });
 
-      // Normalize imported model scale and ground its feet at y=0.
+      // Normalize to a human-sized avatar, then measure again after scaling so the soles
+      // sit exactly on the island's walkable surface (the beach top is y=0.12).
       model.updateMatrixWorld(true);
       const bounds = new THREE.Box3().setFromObject(model);
       const size = new THREE.Vector3();
       const center = new THREE.Vector3();
       bounds.getSize(size);
       bounds.getCenter(center);
-      const targetHeight = 4.8;
+      const targetHeight = 4.6;
       const scale = targetHeight / Math.max(size.y, 0.001);
       model.scale.setScalar(scale);
-      model.position.set(-center.x * scale, -bounds.min.y * scale, -center.z * scale);
+      model.position.set(-center.x * scale, 0, -center.z * scale);
+      model.updateMatrixWorld(true);
+      const scaledBounds = new THREE.Box3().setFromObject(model);
+      model.position.y -= scaledBounds.min.y;
       player.add(model);
 
       this.playerMixer = new THREE.AnimationMixer(model);
       for (const clip of gltf.animations) {
         const key = clip.name.toLowerCase();
+        // Keep the body's skeletal motion but remove animated Hips translation/root drift;
+        // the game controller owns world movement and jumping.
+        clip.tracks = clip.tracks.filter(track => !track.name.toLowerCase().includes('hips.position'));
         if (key.includes('walk')) this.playerActions.walk = this.playerMixer.clipAction(clip);
         if (key.includes('run')) this.playerActions.run = this.playerMixer.clipAction(clip);
       }
+      // Start from a neutral facing direction; movement code below turns the avatar into travel.
       this.playerLoaded = true;
       this.#status('Character ready! WASD move | Shift run | Space jump | Drag camera.', true);
       this.debugHandler?.('Original rigged male character | Walk + run animations | Third-person camera');
@@ -573,7 +581,8 @@ export class Game {
       this.moveDirection.normalize();
       const speed = keys.ShiftLeft || keys.ShiftRight ? 23 : 14;
       this.player.position.addScaledVector(this.moveDirection, speed * dt);
-      this.player.rotation.y = Math.atan2(-this.moveDirection.x, -this.moveDirection.z);
+      // The supplied rig faces local +Z. Rotate its +Z front toward the travel direction.
+      this.player.rotation.y = Math.atan2(this.moveDirection.x, this.moveDirection.z);
       this.walkTime += dt * (speed === 23 ? 12 : 8);
     }
 
